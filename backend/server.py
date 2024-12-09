@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from .models import MongoDB, UserModel, DepartmentModel,TaskModel
+from models.user import MongoDB, UserModel, DepartmentModel,TaskModel
 from bson import ObjectId
 from tasks_data import tasks_data
 
