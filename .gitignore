@@ -1,1 +1,21 @@
 backend/venv
+venv
+# Node.js files (Frontend)
+/frontend/node_modules/
+/frontend/build/
+/frontend/.env
+
+# Python files (Backend)
+/backend/__pycache__/
+/backend/*.pyc
+/backend/.env
+
+# General
+.DS_Store
+*.log
+/.vscode/
+/.idea/
+/.pytest_cache/
+
+# Git
+.env
