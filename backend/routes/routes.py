@@ -14,19 +14,19 @@ def register_user():
     return jsonify({"message": "Registration successful"}), 201
 
 # New routes with role_required
-@app.route('/tasks', methods=['POST'])
+@auth_bp.route('/tasks', methods=['POST'])
 @role_required('can_create_tasks')
 def create_task_role_required():
     # Logic to create a task
     return jsonify({"message": "Task created successfully"}), 201
 
-@app.route('/tasks/approve/<task_id>', methods=['POST'])
+@auth_bp.route('/tasks/approve/<task_id>', methods=['POST'])
 @role_required('can_approve_tasks')
 def approve_task(task_id):
     # Logic to approve a task
     return jsonify({"message": "Task approved successfully"}), 200
 
-@app.route('/users', methods=['GET'])
+@auth_bp.route('/users', methods=['GET'])
 @role_required('can_manage_users')
 def manage_users():
     # Logic to manage users
