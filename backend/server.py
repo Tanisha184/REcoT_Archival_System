@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from .models import MongoDB, UserModel, DepartmentModel, TaskModel
 from bson import ObjectId
-from tasks_data import tasks_data
+from backend.tasks_data import tasks_data
 from .routes.routes import auth_bp  # Import the auth_bp blueprint
 
 app = Flask(__name__)
@@ -104,6 +104,10 @@ def get_department_tasks(department):
         return jsonify({"tasks": tasks_data[department]})
     else:
         return jsonify({"tasks": []}), 404
+
+@app.route('/')
+def index():
+    return "Welcome to the REcoT Archival System API!"
 
 if __name__ == "__main__":
     app.run(debug=True)

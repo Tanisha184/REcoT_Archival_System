@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, User, Task
+from backend.models import db, User, Task
 from ..auth import role_required  # Import role_required from auth.py
 
 auth_bp = Blueprint('auth', __name__)

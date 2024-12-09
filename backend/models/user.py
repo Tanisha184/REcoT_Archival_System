@@ -9,6 +9,14 @@ class MongoDB:
     def get_collection(self, collection_name):
         return self.db[collection_name]
 
+    def __getitem__(self, collection_name):
+        return self.get_collection(collection_name)
+
+
+class User:
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
 
 class UserModel:
     def __init__(self, db):
