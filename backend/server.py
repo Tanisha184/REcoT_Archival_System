@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from .models import MongoDB, UserModel, DepartmentModel,TaskModel
+from .models import MongoDB, UserModel, DepartmentModel, TaskModel
 from bson import ObjectId
 from tasks_data import tasks_data
+from .routes.routes import auth_bp  # Import the auth_bp blueprint
 
 app = Flask(__name__)
 CORS(app)
@@ -12,6 +13,9 @@ db = MongoDB(uri="mongodb://localhost:27017/", db_name="archival_471")
 user_model = UserModel(db)
 department_model = DepartmentModel(db)
 task_model = TaskModel(db)
+
+# Register the auth_bp blueprint
+app.register_blueprint(auth_bp, url_prefix='/auth')
 
 
 @app.route('/register', methods=['POST'])

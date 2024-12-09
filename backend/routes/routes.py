@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from models import db, User, Task
+from ..auth import role_required  # Import role_required from auth.py
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -12,11 +13,21 @@ def register_user():
     db.session.commit()
     return jsonify({"message": "Registration successful"}), 201
 
-# Controller for creating tasks
-@auth_bp.route('/task', methods=['POST'])
-def create_task():
-    data = request.get_json()
-    task = Task(title=data['title'], user_id=data['user_id'])
-    db.session.add(task)
-    db.session.commit()
+# New routes with role_required
+@auth_bp.route('/tasks', methods=['POST'])
+@role_required('can_create_tasks')
+def create_task_role_required():
+    # Logic to create a task
     return jsonify({"message": "Task created successfully"}), 201
+
+@auth_bp.route('/tasks/approve/<task_id>', methods=['POST'])
+@role_required('can_approve_tasks')
+def approve_task(task_id):
+    # Logic to approve a task
+    return jsonify({"message": "Task approved successfully"}), 200
+
+@auth_bp.route('/users', methods=['GET'])
+@role_required('can_manage_users')
+def manage_users():
+    # Logic to manage users
+    return jsonify({"message": "User management access granted"}), 200
