@@ -101,5 +101,39 @@ def get_department_tasks(department):
     else:
         return jsonify({"tasks": []}), 404
 
+@app.route('/profile/<string:user_id>', methods=['GET', 'PUT'])
+def profile(user_id):
+    # Fetch user profile
+    if request.method == 'GET':
+        user = user_model.find_by_id(ObjectId(user_id))
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        return jsonify({
+            'success': True,
+            'user': {
+                'fullName': user['fullName'],
+                'email': user['email']
+            }
+        })
+
+    # Update user profile
+    if request.method == 'PUT':
+        data = request.get_json()
+        update_fields = {}
+
+        # Allow updating full name or email
+        if 'fullName' in data:
+            update_fields['fullName'] = data['fullName']
+        if 'email' in data:
+            # Check for email uniqueness
+            if user_model.find_by_email(data['email']) and user_model.find_by_email(data['email'])['_id'] != ObjectId(user_id):
+                return jsonify({'success': False, 'message': 'Email already in use'}), 400
+            update_fields['email'] = data['email']
+
+        if update_fields:
+            user_model.update_user(ObjectId(user_id), update_fields)
+            return jsonify({'success': True, 'message': 'Profile updated successfully'})
+        return jsonify({'success': False, 'message': 'No valid fields to update'}), 400
+
 if __name__ == "__main__":
     app.run(debug=True)
