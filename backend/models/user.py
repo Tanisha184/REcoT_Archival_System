@@ -14,9 +14,14 @@ class UserModel:
     def __init__(self, db):
         self.collection = db.get_collection('users')
 
+    def find_by_id(self, user_id):
+        return self.users.find_one({"_id": user_id})
+
+    def update_user(self, user_id, update_fields):
+        self.users.update_one({"_id": user_id}, {"$set": update_fields})
+
     def find_by_email(self, email):
-        """Find a user by their email."""
-        return self.collection.find_one({'email': email})
+        return self.users.find_one({"email": email})
 
     def create_user(self, full_name, email, password):
         """Create a new user."""
