@@ -1,3 +1,4 @@
+from bson import ObjectId
 from pymongo import MongoClient
 import bcrypt
 
@@ -18,14 +19,19 @@ class UserModel:
         """Find a user by their email."""
         return self.collection.find_one({'email': email})
 
-    def create_user(self, full_name, email, password):
-        """Create a new user."""
+    def create_user(self, full_name, email, password, role='user', department=None):
+        """Create a new user with a role and optionally a department."""
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         self.collection.insert_one({
             'full_name': full_name,
             'email': email,
-            'password': hashed_password
+            'password': hashed_password,
+            'role': role,  # Add role field
+            'department': department  # Add department field (nullable)
         })
+    def get_user_by_email(self, email):
+        """Retrieve user information including role and department."""
+        return self.collection.find_one({'email': email})
 
     def check_password(self, email, password):
         """Check if the provided password matches the stored hash."""
@@ -40,7 +46,9 @@ class UserModel:
 class DepartmentModel:
     def __init__(self, db):
         self.collection = db.get_collection("departments")
-
+        
+    def find_by_id(self, department_id):
+        return self.collection.find_one({"_id": ObjectId(department_id)})
     def create_department(self, name, description):
         return self.collection.insert_one({"name": name, "description": description})
 
@@ -52,13 +60,19 @@ class DepartmentModel:
 
     def delete_department(self, department_id):
         return self.collection.delete_one({"_id": department_id})
+    
 
 class TaskModel:
     def __init__(self, db):
         self.collection = db.get_collection("tasks")
 
     def create_task(self, department_id, title, status):
-        return self.collection.insert_one({"department_id": department_id, "title": title, "status": status})
+        """Create a task associated with a department."""
+        return self.collection.insert_one({
+            "department_id": department_id,
+            "title": title,
+            "status": status
+        })
 
     def get_tasks_by_department(self, department_id):
         return list(self.collection.find({"department_id": department_id}))

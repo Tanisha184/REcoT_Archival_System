@@ -1,40 +1,65 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import '../App.css';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({ departments: 0, totalTasks: 0, pendingTasks: 0 });
+  const [userRole, setUserRole] = useState('');
+  const [userDepartment, setUserDepartment] = useState('');
+
+  useEffect(() => {
+    // Fetch user role and department from localStorage
+    setUserRole(localStorage.getItem('userRole'));
+    setUserDepartment(localStorage.getItem('userDepartment'));
+
+    // Fetch stats based on user role
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/dashboard-stats', {
+          headers: { email: localStorage.getItem('email') },
+        });
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleLogout = () => {
-    // Clear any stored authentication (if using localStorage, etc.)
-    // Redirect to the login page
-    navigate('/login');
+    localStorage.clear(); // Clear user data
+    navigate('/login'); // Redirect to login
   };
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Welcome to Your Dashboard!</h1>
+        {userRole === 'user' && <p>Department: {userDepartment}</p>}
         <button onClick={handleLogout} className="logout-button">Logout</button>
       </header>
 
       <section className="dashboard-stats">
         <div className="stat-card">
-          <h3>Deparmnets</h3>
-          <p>10</p>
+          <h3>Departments</h3>
+          <p>{stats.departments}</p>
         </div>
         <div className="stat-card">
           <h3>Total Tasks</h3>
-          <p>5</p>
+          <p>{stats.totalTasks}</p>
         </div>
         <div className="stat-card">
           <h3>Pending Tasks</h3>
-          <p>5</p>
+          <p>{stats.pendingTasks}</p>
         </div>
       </section>
 
       <section className="dashboard-navigation">
-        <button onClick={() => navigate('/todo')} className="navigate-button">Go to Task</button>
+        <button onClick={() => navigate('/departments')} className="navigate-button">View Departments</button>
         <button onClick={() => navigate('/settings')} className="navigate-button">Settings</button>
       </section>
     </div>

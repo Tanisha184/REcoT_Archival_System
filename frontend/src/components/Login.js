@@ -14,6 +14,12 @@ const Login = () => {
     try {
       const data = await loginUser(email, password);
       if (data.success) {
+        // Store role and department in localStorage
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('userDepartment', data.department);
+        localStorage.setItem('email', email);
+  
+        // Redirect to the dashboard
         navigate('/dashboard');
       } else {
         setError(data.message);
@@ -23,6 +29,7 @@ const Login = () => {
       setError('An error occurred. Please try again later.');
     }
   };
+  
 
   return (
     <div className="login-container">

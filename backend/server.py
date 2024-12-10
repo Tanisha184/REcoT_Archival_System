@@ -1,105 +1,118 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from models.user import MongoDB, UserModel, DepartmentModel,TaskModel
+from pymongo import MongoClient
+import bcrypt
 from bson import ObjectId
-from tasks_data import tasks_data
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 
-# Initialize database and user model
-db = MongoDB(uri="mongodb://localhost:27017/", db_name="archival_471")
+# MongoDB Setup
+class MongoDB:
+    def __init__(self, uri="mongodb://localhost:27017/", db_name="archival_471"):
+        self.client = MongoClient(uri)
+        self.db = self.client[db_name]
+
+    def get_collection(self, collection_name):
+        return self.db[collection_name]
+
+# Models
+class UserModel:
+    def __init__(self, db):
+        self.collection = db.get_collection("users")
+
+    def find_by_email(self, email):
+        return self.collection.find_one({"email": email})
+
+    def create_user(self, full_name, email, password):
+        hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+        self.collection.insert_one({
+            "full_name": full_name,
+            "email": email,
+            "password": hashed_password
+        })
+
+    def check_password(self, email, password):
+        user = self.find_by_email(email)
+        if user and bcrypt.checkpw(password.encode("utf-8"), user["password"]):
+            return True
+        return False
+
+class DepartmentModel:
+    def __init__(self, db):
+        self.collection = db.get_collection("departments")  # Assuming you have a "departments" collection
+
+    def find_by_id(self, department_id):
+        return self.collection.find_one({"_id": ObjectId(department_id)})
+
+    def create_department(self, name, description):
+        self.collection.insert_one({
+            "name": name,
+            "description": description
+        })
+
+# Initialize MongoDB and models
+db = MongoDB()
 user_model = UserModel(db)
 department_model = DepartmentModel(db)
-task_model = TaskModel(db)
 
+@app.route("/")
+def home():
+    return jsonify({"message": "Welcome to the Archival API!"})
 
-@app.route('/register', methods=['POST'])
+@app.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
-    full_name = data.get('fullName')
-    email = data.get('email')
-    password = data.get('password')
+    full_name = data.get("fullName")
+    email = data.get("email")
+    password = data.get("password")
 
-    # Check if the user already exists
     if user_model.find_by_email(email):
-        return jsonify({'success': False, 'message': 'User already exists'})
+        return jsonify({"success": False, "message": "User already exists"}), 400
 
-    # Register the user
     user_model.create_user(full_name, email, password)
-    response = {'success': True, 'message': 'Registration successful'}
-    print("Response:", response)  # Log the response for debugging
-    return jsonify(response)
+    return jsonify({"success": True, "message": "Registration successful"}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+    email = data.get("email")
+    password = data.get("password")
 
-    # Verify user credentials
     if user_model.check_password(email, password):
-        return jsonify({'success': True, 'message': 'Login successful'})
-    
-    return jsonify({'success': False, 'message': 'Invalid email or password'})
+        return jsonify({"success": True, "message": "Login successful"})
+    return jsonify({"success": False, "message": "Invalid email or password"}), 401
 
-
-departments = [
-    {"id": 1, "name": "Computer Science", "description": "Explore programming, AI, and software development."},
-    {"id": 2, "name": "Electrical Engineering", "description": "Focus on circuits, electronics, and energy systems."},
-    {"id": 3, "name": "Mechanical Engineering", "description": "Learn about machines, design, and thermodynamics."},
-    {"id": 4, "name": "Business Administration", "description": "Study finance, marketing, and management."},
-]
-
+@app.route("/api/dashboard-stats", methods=["GET"])
+def dashboard_stats():
+    stats = {
+        "total_users": db.get_collection("users").count_documents({}),
+        "total_tasks": db.get_collection("tasks").count_documents({}),
+    }
+    return jsonify({"status": "success", "data": stats})
 @app.route('/api/departments', methods=['GET'])
-def get_departments():
-    return jsonify(departments)
+def get_all_departments():
+    departments = department_model.collection.find()  # Get all departments
+    departments_list = []
+    for department in departments:
+        departments_list.append({
+            'id': str(department['_id']),
+            'name': department.get('name'),
+            'description': department.get('description')
+        })
+    return jsonify(departments_list)
 
-@app.route('/api/departments', methods=['GET', 'POST'])
-def handle_departments():
-    if request.method == 'GET':
-        departments = department_model.get_all_departments()
-        for dept in departments:
-            dept['_id'] = str(dept['_id'])  # Convert ObjectId to string
-        return jsonify(departments)
-    
-    if request.method == 'POST':
-        data = request.get_json()
-        department_model.create_department(data['name'], data['description'])
-        return jsonify({'message': 'Department created successfully'}), 201
+@app.route('/api/departments/<string:department_id>', methods=['GET'])
+def get_department(department_id):
+    department = department_model.find_by_id(department_id)
 
-
-@app.route('/api/departments/<string:department_id>', methods=['PUT', 'DELETE'])
-def update_delete_department(department_id):
-    if request.method == 'PUT':
-        data = request.get_json()
-        department_model.update_department(ObjectId(department_id), data)
-        return jsonify({'message': 'Department updated successfully'})
-
-    if request.method == 'DELETE':
-        department_model.delete_department(ObjectId(department_id))
-        return jsonify({'message': 'Department deleted successfully'})
-
-@app.route('/api/tasks', methods=['POST'])
-def create_task():
-    data = request.get_json()
-    task_model.create_task(data['department_id'], data['title'], data['status'])
-    return jsonify({'message': 'Task created successfully'}), 201
-
-@app.route('/api/departments/<string:department_id>/tasks', methods=['GET'])
-def get_tasks_for_department(department_id):
-    tasks = task_model.get_tasks_by_department(department_id)
-    for task in tasks:
-        task['_id'] = str(task['_id'])  # Convert ObjectId to string
-    return jsonify(tasks)
-
-
-@app.route('/api/departments/<department>/tasks', methods=['GET'])
-def get_department_tasks(department):
-    if department in tasks_data:
-        return jsonify({"tasks": tasks_data[department]})
-    else:
-        return jsonify({"tasks": []}), 404
+    if department:
+        return jsonify({
+            'id': str(department['_id']),
+            'name': department.get('name'),
+            'description': department.get('description')
+        })
+    return jsonify({"success": False, "message": "Department not found"}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)

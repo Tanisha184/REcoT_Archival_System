@@ -1,0 +1,37 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom'; // Import useParams and navigate functions
+import '../App.css'; // Optional: Add CSS for styling
+
+function DepartmentDetailsPage() {
+    const { departmentId } = useParams(); // Get the departmentId from the URL
+    const [department, setDepartment] = useState(null);
+    const navigate = useNavigate(); // Initialize navigate function
+
+    useEffect(() => {
+        // Fetch department details from the backend using the departmentId from the URL
+        fetch(`http://localhost:5000/api/departments/${departmentId}`)
+            .then((response) => response.json())
+            .then((data) => setDepartment(data))
+            .catch((error) => console.error("Error fetching department details:", error));
+    }, [departmentId]);
+
+    const handleBackToDepartments = () => {
+        navigate('/departments'); // Navigate back to the departments page
+    };
+
+    if (!department) {
+        return <div>Loading department details...</div>; // Show loading message while fetching data
+    }
+
+    return (
+        <div className="department-details-container">
+            <h1>{department.name} Department</h1>
+            <p><strong>Description:</strong> {department.description}</p>
+            <p><strong>Head of Department:</strong> {department.head}</p>
+            <p><strong>Contact:</strong> {department.contact}</p>
+            <button onClick={handleBackToDepartments}>Back to Departments</button>
+        </div>
+    );
+}
+
+export default DepartmentDetailsPage;
