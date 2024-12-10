@@ -1,23 +1,30 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Dashboard from './components/Dashboard';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { UserProvider } from './UserContext';
 import Login from './components/Login';
 import Registration from './components/Registration';
-import DepartmentTasksPage from './components/DepartmentTasksPage';
+import Dashboard from './components/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 
-const App = () => {
+function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Registration />} />
-        
-        {/* Route for dynamic department tasks page */}
-        <Route path="/departments/:department" element={<DepartmentTasksPage />} />
-      </Routes>
-    </Router>
+    <UserProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Registration />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Department Head', 'Regular User']}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </UserProvider>
   );
-};
+}
 
 export default App;

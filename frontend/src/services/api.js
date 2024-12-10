@@ -1,19 +1,13 @@
-const API_BASE_URL = 'http://localhost:5000';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api';
 
 export const loginUser = async (email, password) => {
-  const response = await fetch(`${API_BASE_URL}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  return response.json();
-};
-
-export const registerUser = async (formData) => {
-  const response = await fetch(`${API_BASE_URL}/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(formData),
-  });
-  return response.json();
+  try {
+    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+    return response.data;
+  } catch (error) {
+    console.error('Login error:', error);
+    return { success: false, message: 'An error occurred. Please try again later.' };
+  }
 };
