@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser } from '../services/api'; // Import API function
+import { loginUser } from '../api';
+import { useUser } from '../UserContext';
 import '../App.css';
 
 const Login = () => {
@@ -8,12 +9,14 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { setUser } = useUser();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const data = await loginUser(email, password);
       if (data.success) {
+        setUser(data.user); // Set the user state
         navigate('/dashboard');
       } else {
         setError(data.message);
