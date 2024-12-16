@@ -1,21 +1,23 @@
 from pymongo import MongoClient
 
 class Task:
-    def __init__(self, department_id, title, status):
+    def __init__(self, department_id, title, status, description):
         self.department_id = department_id
         self.title = title
         self.status = status
+        self.description = description
 
 class TaskModel:
     def __init__(self, db):
         self.db = db
         self.collection = self.db['tasks']
 
-    def create_task(self, department_id, title, status):
+    def create_task(self, department_id, title, status, description):
         task = {
             'department_id': department_id,
             'title': title,
-            'status': status
+            'status': status,
+            'description': description
         }
         self.collection.insert_one(task)
 

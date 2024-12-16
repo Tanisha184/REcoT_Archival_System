@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Corrected import
 import '../App.css';
 import { createTask, approveTask, manageUsers } from '../api';
 
@@ -72,6 +72,7 @@ const Dashboard = () => {
       <section className="dashboard-navigation">
         <button onClick={() => navigate('/todo')} className="navigate-button">Go to Task</button>
         <button onClick={() => navigate('/settings')} className="navigate-button">Settings</button>
+        <Link to="/create-task" className="navigate-button">Create Task</Link> {/* Link to Task Form */}
       </section>
 
       <section className="dashboard-actions">

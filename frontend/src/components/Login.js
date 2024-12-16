@@ -15,6 +15,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const data = await loginUser(email, password);
+      console.log('Login response data:', data); // Log the response data
       if (data.success) {
         setUser(data.user); // Set the user state
         navigate('/dashboard');
