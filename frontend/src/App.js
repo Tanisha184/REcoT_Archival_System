@@ -21,6 +21,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/" element={<Login />} />
         </Routes>
       </Router>
     </UserProvider>
