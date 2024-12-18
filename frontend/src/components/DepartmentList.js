@@ -8,10 +8,13 @@ const DepartmentList = () => {
   useEffect(() => {
     fetch('/api/departments')
       .then((response) => response.json())
-      .then((data) => setDepartments(data)) // Set departments from API response
+      .then((data) => {
+        console.log(data); // Add this line to check if the data is correct
+        setDepartments(data);
+      })
       .catch((error) => console.error('Error fetching departments:', error));
-  }, []); // Empty dependency array ensures this runs once when the component mounts
-
+  }, []);
+  
   return (
     <div className="department-list-container">
       <h1>Department List</h1>

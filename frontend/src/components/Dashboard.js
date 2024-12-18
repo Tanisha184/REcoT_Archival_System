@@ -34,20 +34,14 @@ const Dashboard = () => {
     localStorage.clear(); // Clear user data
     navigate('/login'); // Redirect to login
   };
-
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>Welcome to Your Dashboard!</h1>
-        {userRole === 'user' && <p>Department: {userDepartment}</p>}
+        <h1>RECoT Archival System</h1>
         <button onClick={handleLogout} className="logout-button">Logout</button>
       </header>
 
       <section className="dashboard-stats">
-        <div className="stat-card">
-          <h3>Departments</h3>
-          <p>{stats.departments}</p>
-        </div>
         <div className="stat-card">
           <h3>Total Tasks</h3>
           <p>{stats.totalTasks}</p>
@@ -65,5 +59,4 @@ const Dashboard = () => {
     </div>
   );
 };
-
 export default Dashboard;

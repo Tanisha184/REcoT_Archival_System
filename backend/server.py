@@ -114,6 +114,23 @@ def get_department(department_id):
             'description': department.get('description')
         })
     return jsonify({"success": False, "message": "Department not found"}), 404
+@app.route('/api/departments/<string:department_name>/tasks', methods=['GET'])
+def get_department_tasks(department_name):
+    # Logic to fetch tasks for the department by its name
+    tasks = db.get_collection('tasks').find({"department_name": department_name})
+    task_list = [{"title": task["title"], "status": task["status"]} for task in tasks]
+    return jsonify({"tasks": task_list})
+@app.route('/api/departments', methods=['POST'])
+def add_department():
+    data = request.get_json()
+    name = data.get('name')
+    description = data.get('description')
+    
+    if name and description:
+        department_model.create_department(name, description)
+        return jsonify({"message": "Department added successfully!"}), 201
+    return jsonify({"message": "Missing required fields!"}), 400
+
 
 if __name__ == "__main__":
     app.run(debug=True)

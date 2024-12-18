@@ -1,3 +1,6 @@
+import DepartmentDetailsPage from './components/DepartmentDetailsPage';
+
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom'; // Import useParams and navigate functions
 import '../App.css'; // Optional: Add CSS for styling

@@ -18,9 +18,19 @@ function DepartmentsPage() {
         navigate(`/departments/${departmentId}`);
     };
 
+    // Define the handleAddDepartment function
+    const handleAddDepartment = () => {
+        // Redirect to the add department page
+        navigate("/departments/add");
+    };
+
     return (
         <div className="departments-container">
             <h1>University Departments</h1>
+            
+            {/* Button to add a department */}
+            <button onClick={handleAddDepartment}>Add Department</button>
+
             <div className="departments-list">
                 {departments.map((dept) => (
                     <div key={dept.id} className="department-card">
