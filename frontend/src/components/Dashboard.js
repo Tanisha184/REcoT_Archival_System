@@ -72,7 +72,8 @@ const Dashboard = () => {
       <section className="dashboard-navigation">
         <button onClick={() => navigate('/todo')} className="navigate-button">Go to Task</button>
         <button onClick={() => navigate('/settings')} className="navigate-button">Settings</button>
-        <Link to="/create-task" className="navigate-button">Create Task</Link> {/* Link to Task Form */}
+        <Link to="/create-task" className="navigate-button">Create Task</Link>
+        <Link to="/query-management" className="navigate-button">Query Management</Link>
       </section>
 
       <section className="dashboard-actions">

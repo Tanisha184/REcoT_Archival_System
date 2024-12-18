@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 import bcrypt
+from datetime import datetime
 
 class MongoDB:
     def __init__(self, uri="mongodb://localhost:27017/", db_name="archival_471"):
@@ -26,13 +27,18 @@ class UserModel:
         """Find a user by their email."""
         return self.collection.find_one({'email': email})
 
-    def create_user(self, full_name, email, password):
+    def create_user(self, full_name, email, password, roles=None):
         """Create a new user."""
+        if roles is None:
+            roles = ['user']  # Default role
+            
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         self.collection.insert_one({
             'full_name': full_name,
             'email': email,
-            'password': hashed_password
+            'password': hashed_password,
+            'roles': roles,
+            'created_at': datetime.now()
         })
 
     def check_password(self, email, password):

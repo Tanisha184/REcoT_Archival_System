@@ -1,54 +1,88 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'http://localhost:5000';
 
+// Authentication
 export const loginUser = async (email, password) => {
-  console.log('Attempting to log in with:', email); // Log email for debugging
+  console.log('Attempting to log in with:', email);
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+    const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+    if (response.data.success) {
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
     return response.data;
   } catch (error) {
-    console.error('Login error:', error);
-    return { success: false, message: 'An error occurred. Please try again later.' };
+    throw error;
   }
 };
 
-export const registerUser = async (formData) => {
-  try {
-    const response = await axios.post(`${API_URL}/auth/register`, formData);
-    return response.data;
-  } catch (error) {
-    console.error('Registration error:', error);
-    return { success: false, message: 'An error occurred. Please try again later.' };
-  }
-};
-
+// Task Management
 export const createTask = async (taskData) => {
   try {
-    const response = await axios.post(`${API_URL}/tasks`, taskData);
+    const response = await axios.post(`${API_URL}/api/tasks`, taskData);
     return response.data;
   } catch (error) {
-    console.error('Error creating task:', error);
-    return { success: false, message: 'An error occurred while creating the task.' };
+    throw error;
   }
 };
 
-export const approveTask = async (taskId, approvalStatus) => {
+// Query Management
+export const searchTasks = async (filters) => {
   try {
-    const response = await axios.post(`${API_URL}/tasks/approve/${taskId}`, { status: approvalStatus });
+    const response = await axios.post(`${API_URL}/api/tasks/search`, filters);
     return response.data;
   } catch (error) {
-    console.error('Error approving task:', error);
-    return { success: false, message: 'An error occurred while approving the task.' };
+    throw error;
   }
 };
 
-export const manageUsers = async () => {
+// Archive Management
+export const archiveTask = async (taskId) => {
   try {
-    const response = await axios.get(`${API_URL}/users`);
+    const response = await axios.post(`${API_URL}/api/tasks/archive/${taskId}`);
     return response.data;
   } catch (error) {
-    console.error('Error managing users:', error);
-    return [];
+    throw error;
+  }
+};
+
+export const searchArchives = async (filters) => {
+  try {
+    const response = await axios.post(`${API_URL}/api/archives/search`, filters);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Report Management
+export const getReportTemplates = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/api/report-templates`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const generateReport = async (templateName, filters) => {
+  try {
+    const response = await axios.post(`${API_URL}/api/reports/generate`, {
+      template_name: templateName,
+      filters
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Department Management
+export const getDepartments = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/api/departments`);
+    return response.data;
+  } catch (error) {
+    throw error;
   }
 };
