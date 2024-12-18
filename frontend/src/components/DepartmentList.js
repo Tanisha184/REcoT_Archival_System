@@ -1,36 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
-function DepartmentList() {
-    const [departments, setDepartments] = useState([]);
+const DepartmentList = () => {
+  const [departments, setDepartments] = useState([]);
 
-    useEffect(() => {
-        // Fetch department data from the API
-        fetch("http://localhost:5000/api/departments")
-            .then(response => response.json())
-            .then(data => {
-                setDepartments(data); // Store the department list in the state
-            })
-            .catch(error => {
-                console.error("Error fetching departments:", error);
-            });
-    }, []);
+  // Fetch departments from the server when the component mounts
+  useEffect(() => {
+    fetch('/api/departments')
+      .then((response) => response.json())
+      .then((data) => setDepartments(data)) // Set departments from API response
+      .catch((error) => console.error('Error fetching departments:', error));
+  }, []); // Empty dependency array ensures this runs once when the component mounts
 
-    return (
-        <div>
-            <h2>Departments</h2>
-            <ul>
-                {departments.length > 0 ? (
-                    departments.map(department => (
-                        <li key={department.id}>
-                            <strong>{department.name}</strong>: {department.description}
-                        </li>
-                    ))
-                ) : (
-                    <li>No departments found</li>
-                )}
-            </ul>
-        </div>
-    );
-}
+  return (
+    <div className="department-list-container">
+      <h1>Department List</h1>
+      <Link to="/departments/add">
+        <button>Add New Department</button>
+      </Link>
+      <ul>
+        {departments.length > 0 ? (
+          departments.map((department) => (
+            <li key={department.id}>
+              <Link to={`/departments/${department.id}`}>{department.name}</Link>
+            </li>
+          ))
+        ) : (
+          <p>No departments available.</p>
+        )}
+      </ul>
+    </div>
+  );
+};
 
 export default DepartmentList;
