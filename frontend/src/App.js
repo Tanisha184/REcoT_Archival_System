@@ -8,7 +8,8 @@ import DepartmentsPage from './components/DepartmentsPage';
 import DepartmentDetailPage from './components/DepartmentDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import DepartmentList from './components/DepartmentList';
-import DepartmentAddPage from './components/DepartmentAddPage'; // Import DepartmentAddPage
+import DepartmentAddPage from './components/DepartmentAddPage';
+import ArchivalPage from './components/ArchivalPage';
 
 const App = () => {
   return (
@@ -19,8 +20,9 @@ const App = () => {
         <Route path="/register" element={<Registration />} />
         <Route path="/departments/:departmentId" element={<DepartmentDetailPage />} />
         <Route path="/departments" element={<DepartmentsPage />} />
-        <Route path="/departments/add" element={<DepartmentAddPage />} /> {/* Route for adding a department */}
-        <Route path="/departments/list" element={<DepartmentList />} /> {/* Route for listing departments */}
+        <Route path="/departments/add" element={<DepartmentAddPage />} />
+        <Route path="/departments/list" element={<DepartmentList />} />
+        <Route path="/Archival" element={<ArchivalPage />} />
         <Route
           path="/departments/:departmentId/tasks"
           element={
