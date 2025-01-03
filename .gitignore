@@ -19,3 +19,5 @@ venv
 
 # Git
 .env
+
+backend/models/__pycache__
