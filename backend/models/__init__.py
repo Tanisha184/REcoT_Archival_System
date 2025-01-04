@@ -1,4 +1,10 @@
-from .user import MongoDB
-from .user import UserModel
+from pymongo import MongoClient
 
-__all__ = ["MongoDB", "UserModel"]
+# Initialize the MongoDB client
+db = MongoClient("mongodb://localhost:27017/").archival_471
+
+from .user import User
+from .department import DepartmentModel
+from .task import Task
+
+__all__ = ["MongoDB", "UserModel", "User", "DepartmentModel", "TaskModel", "Task", "db"]
