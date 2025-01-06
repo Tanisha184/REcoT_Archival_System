@@ -1,139 +1,214 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import (
-    create_access_token, create_refresh_token,
-    jwt_required, get_jwt_identity
-)
+from flask import Blueprint, request, jsonify, send_file
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models.report import Report
 from models.user import User
-import bcrypt
+from datetime import datetime
+import json
+import io
+import csv
 
-auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+reports_bp = Blueprint('reports', __name__, url_prefix='/api/reports')
 
 # Initialize db attribute
-auth_bp.db = None
+reports_bp.db = None
 
-def hash_password(password):
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+def has_permission(user, permission):
+    return permission in user.get('permissions', [])
 
-def check_password(password, hashed):
-    return bcrypt.checkpw(password.encode('utf-8'), hashed)
-
-@auth_bp.route('/register', methods=['POST'])
-def register():
-    try:
-        print("Registration endpoint hit")
-        print("Request headers:", dict(request.headers))
-        print("Request method:", request.method)
-        
-        data = request.get_json()
-        print(f"Registration request received: {data}")
-        
-        # Validate required fields
-        required_fields = ['email', 'password', 'name', 'department']
-        if not all(field in data for field in required_fields):
-            missing_fields = [field for field in required_fields if field not in data]
-            error_msg = f'Missing required fields: {", ".join(missing_fields)}'
-            print(f"Validation error: {error_msg}")
-            return jsonify({'error': error_msg}), 400
-            
-        # Validate department
-        if data['department'] not in User.DEPARTMENTS:
-            error_msg = f'Invalid department. Must be one of: {", ".join(User.DEPARTMENTS.keys())}'
-            print(f"Validation error: {error_msg}")
-            return jsonify({'error': error_msg}), 400
-        
-        user_model = User(auth_bp.db)
-        
-        # Check if user already exists
-        if user_model.get_user_by_email(data['email']):
-            return jsonify({'error': 'Email already registered'}), 409
-        
-        # Hash password
-        data['password'] = hash_password(data['password'])
-        
-        # Set default role if not provided
-        if 'roles' not in data:
-            data['roles'] = ['staff']
-        
-        # Create user
-        try:
-            user = user_model.create_user(data)
-            del user['password']  # Remove password from response
-            print(f"User created successfully: {user}")
-            return jsonify(user), 201
-        except Exception as e:
-            print(f"Error creating user: {str(e)}")
-            return jsonify({'error': f'Failed to create user: {str(e)}'}), 500
-            
-    except Exception as e:
-        print(f"Unexpected error in registration: {str(e)}")
-        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
-
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    
-    if not data or 'email' not in data or 'password' not in data:
-        return jsonify({'error': 'Missing email or password'}), 400
-    
-    user_model = User(auth_bp.db)
-    user = user_model.get_user_by_email(data['email'])
-    
-    if not user or not check_password(data['password'], user['password']):
-        return jsonify({'error': 'Invalid email or password'}), 401
-    
-    if not user.get('is_active', True):
-        return jsonify({'error': 'Account is deactivated'}), 403
-    
-    # Create tokens
-    access_token = create_access_token(identity=str(user['_id']))
-    refresh_token = create_refresh_token(identity=str(user['_id']))
-    
-    return jsonify({
-        'access_token': access_token,
-        'refresh_token': refresh_token,
-        'user': {
-            'id': user['_id'],
-            'email': user['email'],
-            'name': user['name'],
-            'department': user['department'],
-            'roles': user['roles'],
-            'permissions': user['permissions']
-        }
-    }), 200
-
-@auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh():
-    current_user_id = get_jwt_identity()
-    access_token = create_access_token(identity=current_user_id)
-    return jsonify({'access_token': access_token}), 200
-
-@auth_bp.route('/me', methods=['GET'])
+@reports_bp.route('', methods=['GET'])  # No trailing slash
+@reports_bp.route('/', methods=['GET'])  # With trailing slash
 @jwt_required()
-def get_current_user():
+def get_reports():
     current_user_id = get_jwt_identity()
-    user_model = User(auth_bp.db)
-    user = user_model.get_user_by_id(current_user_id)
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
     
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
+    if not has_permission(current_user, 'generate_reports'):
+        return jsonify({'error': 'Permission denied'}), 403
     
-    del user['password']
-    return jsonify(user), 200
+    report_model = Report(reports_bp.db)
+    reports = report_model.get_templates()
+    
+    return jsonify(reports), 200
 
-@auth_bp.route('/check-permission', methods=['POST'])
+@reports_bp.route('/templates', methods=['GET'])
 @jwt_required()
-def check_permission():
-    data = request.get_json()
-    if not data or 'permission' not in data:
-        return jsonify({'error': 'Permission not specified'}), 400
-    
+def get_report_templates():
     current_user_id = get_jwt_identity()
-    user_model = User(auth_bp.db)
-    user = user_model.get_user_by_id(current_user_id)
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
     
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
+    if not has_permission(current_user, 'generate_reports'):
+        return jsonify({'error': 'Permission denied'}), 403
     
-    has_permission = data['permission'] in user.get('permissions', [])
-    return jsonify({'has_permission': has_permission}), 200
+    report_model = Report(reports_bp.db)
+    templates = report_model.get_templates()
+    
+    return jsonify(templates), 200
+
+@reports_bp.route('/templates', methods=['POST'])
+@jwt_required()
+def create_report_template():
+    current_user_id = get_jwt_identity()
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
+    
+    if not has_permission(current_user, 'manage_roles'):  # Only admins can create templates
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    data = request.get_json()
+    required_fields = ['name', 'description', 'type', 'fields', 'layout']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    report_model = Report(reports_bp.db)
+    template = report_model.create_template(data)
+    
+    return jsonify(template), 201
+
+@reports_bp.route('/generate', methods=['POST'])
+@jwt_required()
+def generate_report():
+    current_user_id = get_jwt_identity()
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
+    
+    if not has_permission(current_user, 'generate_reports'):
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    data = request.get_json()
+    if 'template' not in data or 'filters' not in data:
+        return jsonify({'error': 'Missing template or filters'}), 400
+    
+    report_model = Report(reports_bp.db)
+    
+    # Handle different report types
+    if data['template'] == Report.TEMPLATES['TASK_SUMMARY']:
+        # For non-admin users, restrict to their department
+        department = None if has_permission(current_user, 'view_all_tasks') else current_user['department']
+        report_data = report_model.generate_task_summary_report(data['filters'], department)
+    
+    elif data['template'] == Report.TEMPLATES['DEPARTMENT_PERFORMANCE']:
+        if not data['filters'].get('department'):
+            return jsonify({'error': 'Department is required for performance report'}), 400
+        
+        # Check if user has permission for the requested department
+        if not (has_permission(current_user, 'view_all_tasks') or 
+                data['filters']['department'] == current_user['department']):
+            return jsonify({'error': 'Permission denied for requested department'}), 403
+        
+        report_data = report_model.generate_department_performance_report(
+            data['filters']['department'],
+            data['filters'].get('date_range', {
+                'start': datetime.utcnow().replace(day=1),
+                'end': datetime.utcnow()
+            })
+        )
+    else:
+        return jsonify({'error': 'Invalid report template'}), 400
+    
+    if not report_data:
+        return jsonify({'error': 'No data available for the specified filters'}), 404
+    
+    # Create report record
+    report = report_model.create_report({
+        'title': data.get('title', f"Report {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"),
+        'template': data['template'],
+        'filters': data['filters'],
+        'data': report_data,
+        'department': current_user['department'] if not has_permission(current_user, 'view_all_tasks') else None
+    }, current_user_id)
+    
+    return jsonify(report), 201
+
+@reports_bp.route('/<report_id>', methods=['GET'])
+@jwt_required()
+def get_report(report_id):
+    current_user_id = get_jwt_identity()
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
+    
+    report_model = Report(reports_bp.db)
+    report = report_model.get_report_by_id(report_id)
+    
+    if not report:
+        return jsonify({'error': 'Report not found'}), 404
+    
+    # Check permissions
+    if not (has_permission(current_user, 'view_all_tasks') or
+            report['department'] == current_user['department'] or
+            report['generated_by'] == current_user_id):
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    return jsonify(report), 200
+
+@reports_bp.route('/<report_id>/export', methods=['GET'])
+@jwt_required()
+def export_report(report_id):
+    current_user_id = get_jwt_identity()
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
+    
+    report_model = Report(reports_bp.db)
+    report = report_model.get_report_by_id(report_id)
+    
+    if not report:
+        return jsonify({'error': 'Report not found'}), 404
+    
+    # Check permissions
+    if not (has_permission(current_user, 'view_all_tasks') or
+            report['department'] == current_user['department'] or
+            report['generated_by'] == current_user_id):
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    # Get export format
+    export_format = request.args.get('format', 'csv')
+    
+    if export_format == 'csv':
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        if isinstance(report['data'], dict):
+            writer.writerow(report['data'].keys())
+            writer.writerow(report['data'].values())
+        elif isinstance(report['data'], list):
+            if report['data']:
+                writer.writerow(report['data'][0].keys())
+                for row in report['data']:
+                    writer.writerow(row.values())
+        
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode('utf-8')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f"report_{report_id}.csv"
+        )
+    
+    elif export_format == 'json':
+        return send_file(
+            io.BytesIO(json.dumps(report['data'], default=str).encode('utf-8')),
+            mimetype='application/json',
+            as_attachment=True,
+            download_name=f"report_{report_id}.json"
+        )
+    
+    else:
+        return jsonify({'error': 'Unsupported export format'}), 400
+
+@reports_bp.route('/department/<department>', methods=['GET'])
+@jwt_required()
+def get_department_reports(department):
+    current_user_id = get_jwt_identity()
+    user_model = User(reports_bp.db)
+    current_user = user_model.get_user_by_id(current_user_id)
+    
+    if not (has_permission(current_user, 'view_all_tasks') or
+            current_user['department'] == department):
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    report_model = Report(reports_bp.db)
+    reports = report_model.get_department_reports(department)
+    
+    return jsonify(reports), 200
